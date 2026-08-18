@@ -21,7 +21,7 @@
  *    frontend (archivo config.js de GitHub Pages).
  */
 
-var API_KEY = 'q0RUm-tKprAogLl1QRoqOQr-QfX_eSLhW24NOKoV2Bo'; // <-- tu llave secreta
+var API_KEY = 'AKfycbxYIMyghA0M1_8Pfdcs5diduCySWN6PUaJErYPlkB_Dd9oFqen6Tf7hnqjvRPNSx9AA'; // <-- tu llave secreta
 
 var SHEET_RESUMEN = 'Resumen';
 var SHEET_REGISTRO = 'Registro';
