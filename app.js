@@ -82,7 +82,7 @@ var mesSeleccionadoAnalisis = null;
 var mesesInfo = null;
 var fijaActual = null; // {fila, montoPlaneado} en el modal
 var ultimoResumen = null;
-var mostrarIngresos = localStorage.getItem('mostrarIngresos') === 'true';
+var mostrarIngresos = false; // siempre empieza oculto al abrir la app (no se recuerda entre sesiones)
 var tipoMovimiento = 'gasto';
 var editandoFila = null;
 var editandoCategoria = null;
@@ -342,7 +342,6 @@ function cardDisponibleHead(){
 
 function toggleIngresos(){
   mostrarIngresos = !mostrarIngresos;
-  localStorage.setItem('mostrarIngresos', mostrarIngresos);
   renderDisponible();
 }
 
@@ -364,19 +363,30 @@ function renderDisponible(){
   animarNumero(document.getElementById('numDisponible'), r.restante);
 }
 
+function polarToCartesian_(cx, cy, r, angleDeg){
+  var rad = (angleDeg-90) * Math.PI / 180;
+  return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
+}
+function describeArc_(cx, cy, r, startAngle, endAngle){
+  var start = polarToCartesian_(cx, cy, r, endAngle);
+  var end = polarToCartesian_(cx, cy, r, startAngle);
+  var largeArcFlag = (endAngle - startAngle) <= 180 ? "0" : "1";
+  return ["M", start.x, start.y, "A", r, r, 0, largeArcFlag, 0, end.x, end.y].join(" ");
+}
 function renderDonut(categorias){
   var total = categorias.reduce(function(s,c){ return s+c.valor; }, 0);
-  var r = 42, circ = 2*Math.PI*r;
-  var acumulado = 0;
+  var r = 42, cx = 50, cy = 50;
+  var acumAngulo = 0;
   var svg = '<svg width="100" height="100" viewBox="0 0 100 100">';
   svg += '<circle cx="50" cy="50" r="'+r+'" fill="none" style="stroke:var(--border)" stroke-width="14"></circle>';
   categorias.forEach(function(c,i){
     var frac = c.valor/total;
-    var largo = frac*circ;
-    var offset = circ - acumulado;
-    svg += '<circle cx="50" cy="50" r="'+r+'" fill="none" stroke="'+COLORES[i%COLORES.length]+'" stroke-width="14" ' +
-      'stroke-dasharray="'+largo+' '+circ+'" stroke-dashoffset="'+offset+'" transform="rotate(-90 50 50)"></circle>';
-    acumulado += largo;
+    var anguloInicio = acumAngulo;
+    var anguloFin = acumAngulo + frac*360;
+    var anguloFinSeguro = Math.min(anguloFin, anguloInicio + 359.99); // evita arco de 360° exactos (degenerado)
+    var d = describeArc_(cx, cy, r, anguloInicio, anguloFinSeguro);
+    svg += '<path d="'+d+'" fill="none" stroke="'+COLORES[i%COLORES.length]+'" stroke-width="14" stroke-linecap="butt"></path>';
+    acumAngulo = anguloFin;
   });
   svg += '</svg>';
   document.getElementById('donut').innerHTML = svg;
@@ -409,7 +419,8 @@ function cargarFijos(){
       return;
     }
     document.getElementById('listaFijos').innerHTML = r.items.map(function(it){
-      var multiParte = it.parte && it.parte.indexOf('/1') === -1;
+      var parteTxt = String(it.parte || '');
+      var multiParte = parteTxt && parteTxt.indexOf('/1') === -1;
       var diaTag = '<span class="dia-pago" onclick="abrirModalDia(\''+it.categoria+'\','+(it.diaPago||'null')+')">' +
         (it.diaPago ? 'vence día '+it.diaPago : 'poner día') + '</span>';
       return '<div class="fijo-item">' +
@@ -727,8 +738,7 @@ function renderFijoVariable(r){
 
 function renderRanking(r){
   if(!r.categorias || r.categorias.length === 0){
-    var debugTxt = r.debug ? '<pre style="white-space:pre-wrap; font-size:10px; color:var(--muted); text-align:left; margin-top:10px;">'+JSON.stringify(r.debug, null, 1)+'</pre>' : '';
-    document.getElementById('listaRanking').innerHTML = '<div class="empty">Sin gastos registrados este mes.</div>' + debugTxt;
+    document.getElementById('listaRanking').innerHTML = '<div class="empty">Sin gastos registrados este mes.</div>';
     return;
   }
   var maxGasto = r.categorias[0].gasto;
