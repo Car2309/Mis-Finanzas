@@ -206,10 +206,77 @@ function hoyISO(){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function mostrarMascota(){
+  if(document.hidden) return; // no molestar si la app está en segundo plano
   var el = document.getElementById('mascotaFlotante');
   if(!el) return;
   el.classList.add('show');
   setTimeout(function(){ el.classList.remove('show'); }, 4000); // se queda 4s asomada y se esconde sola
+}
+
+// ---------------- SALUDO SEGÚN LA HORA ----------------
+function aplicarSaludo(){
+  var h = new Date().getHours();
+  var texto = h < 5 ? 'Buenas noches 🌙' : h < 12 ? 'Buenos días ☀️' : h < 19 ? 'Buenas tardes 👋' : 'Buenas noches 🌙';
+  var el = document.getElementById('saludoInicio');
+  if(el) el.textContent = texto;
+}
+
+// ---------------- RACHA DE DÍAS REGISTRANDO GASTOS ----------------
+function cargarRacha(){
+  apiCall('getUltimosGastos', { n: 60 }).then(function(lista){
+    var el = document.getElementById('rachaBadge');
+    if(!el || !lista || lista.length === 0) return;
+    var fechas = {};
+    lista.forEach(function(tx){
+      var p = tx.fecha.split('/'); // dd/mm/yyyy
+      if(p.length !== 3) return;
+      var key = p[2]+'-'+p[1]+'-'+p[0];
+      fechas[key] = true;
+    });
+    var dias = Object.keys(fechas).sort().reverse();
+    if(dias.length === 0) return;
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var cursor = new Date(hoy);
+    var racha = 0;
+    // permite que el día de hoy aún no tenga gasto sin romper la racha de ayer
+    if(!fechas[isoLocal_(cursor)]) cursor.setDate(cursor.getDate()-1);
+    while(fechas[isoLocal_(cursor)]){
+      racha++;
+      cursor.setDate(cursor.getDate()-1);
+    }
+    if(racha >= 2){
+      el.innerHTML = '<span class="racha-badge">🔥 '+racha+' días seguidos</span>';
+    }
+  }).catch(function(){});
+}
+function isoLocal_(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ---------------- FRASES RANDOM DE CARGA ----------------
+var FRASES_CARGA = ['Cargando…', 'Contando billetes…', 'Sumando monedas…', 'Consultando la hoja…', 'Un segundo…'];
+function fraseCarga(){
+  return FRASES_CARGA[Math.floor(Math.random()*FRASES_CARGA.length)];
+}
+
+// ---------------- CONFETI ----------------
+function lanzarConfeti(){
+  var colores = ['#C9A961','#34D399','#F87171','#8E44AD','#1B9C85'];
+  for(var i=0; i<16; i++){
+    var pieza = document.createElement('div');
+    pieza.className = 'confeti-pieza';
+    var x = Math.random()*100;
+    var rot = (Math.random()*360)+'deg';
+    pieza.style.left = x+'vw';
+    pieza.style.background = colores[i % colores.length];
+    pieza.style.animationDelay = (Math.random()*0.2)+'s';
+    pieza.style.setProperty('--rot', rot);
+    document.body.appendChild(pieza);
+    setTimeout(function(p){ return function(){ p.remove(); }; }(pieza), 1700);
+  }
+}
+function vibrar_(ms){
+  if(navigator.vibrate){ try{ navigator.vibrate(ms); }catch(e){} }
 }
 function fmt(n){
   n = Number(n)||0;
@@ -276,7 +343,9 @@ function iniciarApp(){
   cargarCategorias();
   actualizarBadgeCola();
   sincronizarPendientes();
-  setTimeout(mostrarMascota, 20000);
+  aplicarSaludo();
+  cargarRacha();
+  setInterval(mostrarMascota, 15000);
 
   apiCall('getMesesDisponibles', {}).then(function(info){
     mesesInfo = info;
@@ -409,7 +478,7 @@ function cargarFijos(){
   renderPills('pillsFijos', mesesInfo.meses, mesSeleccionadoFijos, function(m){
     mesSeleccionadoFijos = m; cargarFijos();
   });
-  document.getElementById('progresoTexto').textContent = 'Cargando…';
+  document.getElementById('progresoTexto').textContent = fraseCarga();
   document.getElementById('listaFijos').innerHTML = skeletonLineas(5, [40,40,40,40,40]);
 
   apiCall('getFijosEstado', { mesAbr: mesSeleccionadoFijos }).then(function(r){
@@ -466,7 +535,7 @@ function confirmarPago(){
   apiCall('marcarFijoPagado', { fila: fijaActual.fila, monto: monto, fechaStr: fecha }).then(function(resp){
     btn.disabled = false; btn.textContent = 'Confirmar';
     cerrarModalPago();
-    if(resp.ok){ cargarFijos(); cargarInicio(); }
+    if(resp.ok){ cargarFijos(); cargarInicio(); lanzarConfeti(); vibrar_(40); }
     else { alert(resp.mensaje); }
   }).catch(function(err){
     btn.disabled = false; btn.textContent = 'Confirmar';
@@ -631,6 +700,7 @@ function guardarGasto(){
     btn.disabled = false; btn.textContent = textoOriginal;
     if(resp.ok){
       mostrarToast('toastAgregar', resp.mensaje, true);
+      vibrar_(30);
       document.getElementById('descripcion').value = '';
       document.getElementById('monto').value = '';
       document.getElementById('fecha').value = hoyISO();

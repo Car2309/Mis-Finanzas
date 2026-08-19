@@ -74,7 +74,7 @@
   .app{ max-width:480px; margin:0 auto; min-height:100vh; position:relative; padding-bottom:78px; }
 
   .topbar{
-    padding:22px 18px 16px;
+    padding:26px 18px 16px;
     border-bottom:1px solid var(--border);
   }
   .topbar .eyebrow{
@@ -331,7 +331,27 @@
     transition:top .55s cubic-bezier(.34,1.56,.64,1);
     pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));
   }
-  .mascota-flotante.show{ top:-8px; }
+  .mascota-flotante.show{ top:50px; }
+
+  /* Botón + que respira suavemente para invitar a anotar un gasto */
+  .navbtn.fab .icon{ animation:respirar 2.6s ease-in-out infinite; }
+  @keyframes respirar{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+
+  /* Confeti */
+  .confeti-pieza{
+    position:fixed; top:-10px; width:8px; height:8px; border-radius:2px;
+    z-index:70; pointer-events:none;
+    animation:caer-confeti 1.3s ease-in forwards;
+  }
+  @keyframes caer-confeti{
+    to{ transform:translateY(110vh) rotate(var(--rot)); opacity:0; }
+  }
+
+  /* Racha de días */
+  .racha-badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600;
+    color:var(--amber); background:var(--amber-bg); padding:4px 10px; border-radius:20px; margin-top:8px;
+  }
 </style>
 </head>
 <body>
@@ -354,6 +374,7 @@
         <div>
           <p class="eyebrow">Control de Gastos</p>
           <h1 id="saludoInicio">Hola 👋</h1>
+          <div id="rachaBadge"></div>
         </div>
         <button class="gear-btn" onclick="abrirConfiguracion()">⚙️</button>
       </div>
