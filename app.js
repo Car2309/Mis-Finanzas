@@ -205,6 +205,12 @@ function hoyISO(){
   var d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+function mostrarMascota(){
+  var el = document.getElementById('mascotaFlotante');
+  if(!el) return;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 4000); // se queda 4s asomada y se esconde sola
+}
 function fmt(n){
   n = Number(n)||0;
   return '$' + Math.round(n).toLocaleString('es-CO');
@@ -270,6 +276,7 @@ function iniciarApp(){
   cargarCategorias();
   actualizarBadgeCola();
   sincronizarPendientes();
+  setTimeout(mostrarMascota, 20000);
 
   apiCall('getMesesDisponibles', {}).then(function(info){
     mesesInfo = info;

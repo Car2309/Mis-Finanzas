@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Control de Gastos</title>
-<meta name="theme-color" content="#6B4EA3">
+<meta name="theme-color" content="#1F3864">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,9 +23,9 @@
     --border:#E2E4E9;
     --text:#12151C;
     --muted:#6B7280;
-    --accent:#7C5CBF;
-    --accent-dim:#5D4494;
-    --accent-contrast:#FFFFFF;
+    --accent:#B8924B;
+    --accent-dim:#8A6F3A;
+    --accent-contrast:#0B0D12;
     --green:#059669;
     --green-bg:#E4F7EE;
     --red:#DC2626;
@@ -58,9 +58,9 @@
     --border:#242A35;
     --text:#EDEFF3;
     --muted:#8890A0;
-    --accent:#B79CEF;
-    --accent-dim:#8A6FBF;
-    --accent-contrast:#171225;
+    --accent:#C9A961;
+    --accent-dim:#8A7642;
+    --accent-contrast:#0B0D12;
     --green:#34D399;
     --green-bg:#0F2A21;
     --red:#F87171;
@@ -82,7 +82,7 @@
     text-transform:uppercase; letter-spacing:.09em;
   }
   .topbar h1{ margin:0; font-size:21px; font-weight:700; color:var(--text); letter-spacing:-.2px; }
-  .topbar-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-top:15px; }
+  .topbar-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-top:40px; }
   .gear-btn{
     background:var(--card); border:1px solid var(--border); color:var(--text); font-size:15px;
     width:36px; height:36px; border-radius:10px; cursor:pointer; flex:0 0 auto;
@@ -324,6 +324,14 @@
   .lock-screen h2{ font-family:'Space Grotesk',sans-serif; margin:0 0 4px; font-size:20px; color:var(--text); }
   .lock-screen p{ color:var(--muted); font-size:13px; margin:0 0 22px; }
   .lock-error{ color:var(--red) !important; margin-top:14px !important; font-size:12px !important; min-height:16px; }
+
+  /* Mascota flotante (aparece de vez en cuando) */
+  .mascota-flotante{
+    position:fixed; top:-140px; right:16px; width:92px; z-index:60;
+    transition:top .55s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));
+  }
+  .mascota-flotante.show{ top:-8px; }
 </style>
 </head>
 <body>
@@ -336,6 +344,8 @@
 </div>
 
 <div class="app" id="appRoot">
+<img src="./mascota.gif" id="mascotaFlotante" class="mascota-flotante" alt="">
+
 
   <!-- ============ INICIO ============ -->
   <div class="tab active" id="tab-inicio">
