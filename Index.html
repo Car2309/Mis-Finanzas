@@ -334,6 +334,13 @@
     transition:top .55s cubic-bezier(.34,1.56,.64,1);
     pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));
   }
+  
+  .top-safe-spacer{
+    height:56px; display:flex; align-items:center; justify-content:center;
+    background:var(--bg);
+  }
+  .top-safe-spacer img{ width:26px; height:26px; border-radius:7px; }
+
   .mascota-flotante.show{ top:90px; }
 
   /* Botón + que respira suavemente para invitar a anotar un gasto */
@@ -367,6 +374,7 @@
 </div>
 
 <div class="app" id="appRoot">
+<div class="top-safe-spacer"><img src="./icon-192.png" alt=""></div>
 <img src="./mascota.gif" id="mascotaFlotante" class="mascota-flotante" alt="">
 
 
