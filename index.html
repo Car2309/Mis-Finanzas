@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Control de Gastos</title>
 <meta name="theme-color" content="#6B4EA3">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Gastos">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./icon-192.png">
@@ -334,6 +334,13 @@
     transition:top .55s cubic-bezier(.34,1.56,.64,1);
     pointer-events:none; filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));
   }
+  
+  .top-safe-spacer{
+    height:56px; display:flex; align-items:center; justify-content:center;
+    background:var(--accent);
+  }
+  .top-safe-spacer img{ width:26px; height:26px; border-radius:7px; }
+
   .mascota-flotante.show{ top:90px; }
 
   /* Botón + que respira suavemente para invitar a anotar un gasto */
@@ -367,6 +374,7 @@
 </div>
 
 <div class="app" id="appRoot">
+<div class="top-safe-spacer"><img src="./icon-192.png" alt=""></div>
 <img src="./mascota.gif" id="mascotaFlotante" class="mascota-flotante" alt="">
 
 
