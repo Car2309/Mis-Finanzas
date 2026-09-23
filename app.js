@@ -323,6 +323,24 @@ function irATab(nombre){
   if(nombre === 'analisis') cargarAnalisis();
 }
 
+// ---------------- FORMATO DE MILES (campo Monto en Agregar) ----------------
+function soloDigitos_(valor){
+  return (valor || '').toString().replace(/\D/g, '');
+}
+function formatearMiles_(valor){
+  var digitos = soloDigitos_(valor);
+  if(!digitos) return '';
+  return Number(digitos).toLocaleString('es-CO');
+}
+(function(){
+  var inputMonto = document.getElementById('monto');
+  if(inputMonto){
+    inputMonto.addEventListener('input', function(e){
+      e.target.value = formatearMiles_(e.target.value);
+    });
+  }
+})();
+
 // ---------------- INIT ----------------
 window.addEventListener('DOMContentLoaded', function(){
   var faceIdActivo = localStorage.getItem('faceIdActivo') === 'true';
@@ -688,7 +706,7 @@ function guardarGasto(){
     fecha: document.getElementById('fecha').value,
     categoria: document.getElementById('categoria').value,
     descripcion: document.getElementById('descripcion').value,
-    monto: document.getElementById('monto').value,
+    monto: soloDigitos_(document.getElementById('monto').value),
     tipo: tipoMovimiento
   };
   if(!datos.categoria || datos.categoria==='__nueva__'){ mostrarToast('toastAgregar','Elige o crea una categoría primero.', false); return; }

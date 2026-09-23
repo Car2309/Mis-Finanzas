@@ -83,7 +83,9 @@
   }
   .topbar h1{ margin:0; font-size:21px; font-weight:700; color:var(--text); letter-spacing:-.2px; }
   .topbar-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-top:15px; }
-  #tab-agregar .topbar-row{ margin-top:30px; }
+  .topbar > .eyebrow{ margin-top:15px; }
+  .topbar > .ahorro-hero{ margin-top:15px; }
+  #tab-agregar .topbar > .eyebrow{ margin-top:30px; }
   .gear-btn{
     background:var(--card); border:1px solid var(--border); color:var(--text); font-size:15px;
     width:36px; height:36px; border-radius:10px; cursor:pointer; flex:0 0 auto;
@@ -466,7 +468,7 @@
       </div>
       <div class="field">
         <label for="monto">Monto (COP)</label>
-        <div class="amount-wrap"><span>$</span><input type="number" id="monto" placeholder="0" inputmode="numeric" min="0" step="1"></div>
+        <div class="amount-wrap"><span>$</span><input type="text" id="monto" placeholder="0" inputmode="numeric" autocomplete="off"></div>
       </div>
       <button class="btn" id="btnGuardar" onclick="guardarGasto()">Guardar gasto</button>
     </div>
