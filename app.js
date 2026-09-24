@@ -519,18 +519,19 @@ function cargarFijos(){
       var parteValida = /^\d+\/\d+$/.test(parteTxt); // solo mostramos si es "número/número", ej. "1/2"
       var multiParte = parteValida && parteTxt.indexOf('/1') === -1;
 
-      var lineaMonto;
+      var lineaMonto, lineaFecha = '';
       if(it.pagado){
         var diff = it.montoPagado - it.montoPlaneado;
         var colorDiff = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--text)';
-        lineaMonto = 'Presupuestado '+fmt(it.montoPlaneado)+' → Pagado <b style="color:'+colorDiff+';">'+fmt(it.montoPagado)+'</b> · '+it.fechaPago;
+        lineaMonto = 'Presupuestado '+fmt(it.montoPlaneado)+' → Pagado <b style="color:'+colorDiff+';">'+fmt(it.montoPagado)+'</b>';
+        lineaFecha = '<div class="fijo-fecha">'+it.fechaPago+'</div>';
       } else {
         lineaMonto = 'Presupuestado '+fmt(it.montoPlaneado);
       }
 
       return '<div class="fijo-item">' +
         '<div class="fijo-left"><div class="nombre">'+it.categoria + (multiParte? '<span class="parte">'+it.parte+'</span>':'')+'</div>' +
-        '<div class="monto">'+lineaMonto+'</div></div>' +
+        '<div class="monto">'+lineaMonto+'</div>' + lineaFecha + '</div>' +
         '<div class="fijo-right">' +
         (it.pagado? '' : '<button class="edit-btn" onclick="abrirModalMonto('+it.fila+','+it.montoPlaneado+')">✎</button>') +
         (it.pagado? '' : '<button class="edit-btn" onclick="abrirModalEliminar('+it.fila+')">🗑</button>') +
