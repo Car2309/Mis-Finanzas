@@ -333,12 +333,14 @@ function formatearMiles_(valor){
   return Number(digitos).toLocaleString('es-CO');
 }
 (function(){
-  var inputMonto = document.getElementById('monto');
-  if(inputMonto){
-    inputMonto.addEventListener('input', function(e){
-      e.target.value = formatearMiles_(e.target.value);
-    });
-  }
+  ['monto', 'comisionMontoViaticos', 'comisionMontoTransporte'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.addEventListener('input', function(e){
+        e.target.value = formatearMiles_(e.target.value);
+      });
+    }
+  });
 })();
 
 // ---------------- INIT ----------------
@@ -692,8 +694,31 @@ function elegirTipo(tipo){
   tipoMovimiento = tipo;
   document.getElementById('btnTipoGasto').classList.toggle('active', tipo==='gasto');
   document.getElementById('btnTipoReembolso').classList.toggle('active', tipo==='reembolso');
-  document.getElementById('btnGuardar').textContent = tipo==='reembolso' ? 'Guardar reembolso' : 'Guardar gasto';
-  document.getElementById('descripcion').placeholder = tipo==='reembolso' ? '¿Quién te reembolsó / por qué?' : '¿En qué fue?';
+  document.getElementById('btnTipoComision').classList.toggle('active', tipo==='comision');
+  document.getElementById('campoCategoria').style.display = (tipo==='comision') ? 'none' : 'block';
+  document.getElementById('camposComision').style.display = (tipo==='comision') ? 'block' : 'none';
+  document.getElementById('btnGuardar').textContent =
+    tipo==='reembolso' ? 'Guardar reembolso' : tipo==='comision' ? 'Guardar gasto de comisión' : 'Guardar gasto';
+  document.getElementById('descripcion').placeholder =
+    tipo==='reembolso' ? '¿Quién te reembolsó / por qué?' : tipo==='comision' ? '¿En qué fue? (opcional)' : '¿En qué fue?';
+  if(tipo==='comision') cargarComisionesActivasParaSelect_();
+}
+
+function cargarComisionesActivasParaSelect_(){
+  var sel = document.getElementById('comisionSeleccionada');
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  apiCall('getComisiones', {}).then(function(r){
+    var activas = (r.comisiones||[]).filter(function(c){ return c.estado === 'Activa'; });
+    if(activas.length === 0){
+      sel.innerHTML = '<option value="">No hay comisiones activas</option>';
+      return;
+    }
+    sel.innerHTML = activas.map(function(c){
+      return '<option value="'+c.id+'">'+c.destino+' ('+c.fecha+')</option>';
+    }).join('');
+  }).catch(function(){
+    sel.innerHTML = '<option value="">Sin conexión</option>';
+  });
 }
 
 function mostrarToast(id, msg, ok){
@@ -701,6 +726,8 @@ function mostrarToast(id, msg, ok){
   t.textContent = msg; t.className = 'toast ' + (ok?'ok':'err');
 }
 function guardarGasto(){
+  if(tipoMovimiento === 'comision'){ guardarGastoComision_(); return; }
+
   var btn = document.getElementById('btnGuardar');
   var datos = {
     fecha: document.getElementById('fecha').value,
@@ -733,42 +760,130 @@ function guardarGasto(){
   });
 }
 
-// ---------------- AHORRO ----------------
-function cargarAhorro(){
-  apiCall('getAhorroResumen', {}).then(function(r){
-    if(r.error){ document.getElementById('listaAhorro').innerHTML = '<div class="empty">'+r.error+'</div>'; return; }
-    document.getElementById('saldoAhorro').textContent = fmt(r.saldoActual);
-    document.getElementById('listaAhorro').innerHTML = r.meses.map(function(m, idx){
-      return '<div class="mes-row">' +
-        '<div class="mes-row-head" onclick="toggleMesAhorro('+idx+')">' +
-          '<span class="nombre">'+m.mes+'</span><span class="saldo">Saldo: '+fmt(m.saldo)+'</span>' +
-        '</div>' +
-        '<div class="mes-edit" id="ahorroEdit'+idx+'">' +
-          '<div class="mes-edit-grid">' +
-            '<div class="field"><label>Aportado</label><input type="number" id="ahorroAportado'+idx+'" value="'+m.aportado+'"></div>' +
-            '<div class="field"><label>Retiro</label><input type="number" id="ahorroRetiro'+idx+'" value="'+m.retiro+'"></div>' +
-          '</div>' +
-          '<div class="field"><label>Nota</label><input type="text" id="ahorroNota'+idx+'" value="'+(m.nota||'')+'"></div>' +
-          '<button class="btn" onclick="guardarAhorro('+idx+','+m.fila+')">Guardar este mes</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+function guardarGastoComision_(){
+  var btn = document.getElementById('btnGuardar');
+  var comisionId = document.getElementById('comisionSeleccionada').value;
+  var bolsa = document.getElementById('bolsaSeleccionada').value;
+  var descripcion = document.getElementById('descripcion').value;
+  var monto = soloDigitos_(document.getElementById('monto').value);
+
+  if(!comisionId){ mostrarToast('toastAgregar','Elige a cuál comisión pertenece.', false); return; }
+  if(!monto || Number(monto)<=0){ mostrarToast('toastAgregar','Escribe un monto válido.', false); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Guardando…';
+  apiCall('registrarGastoComision', { comisionId: comisionId, bolsa: bolsa, descripcion: descripcion, monto: monto }).then(function(resp){
+    btn.disabled = false; btn.textContent = 'Guardar gasto de comisión';
+    if(resp.ok){
+      mostrarToast('toastAgregar', resp.mensaje, true);
+      vibrar_(30);
+      document.getElementById('descripcion').value = '';
+      document.getElementById('monto').value = '';
+    } else {
+      mostrarToast('toastAgregar', resp.mensaje, false);
+    }
   }).catch(function(err){
-    document.getElementById('listaAhorro').innerHTML = '<div class="empty">Sin conexión.</div>';
+    btn.disabled = false; btn.textContent = 'Guardar gasto de comisión';
+    mostrarToast('toastAgregar','Error: '+err.message, false);
   });
 }
-function toggleMesAhorro(idx){
-  var el = document.getElementById('ahorroEdit'+idx);
-  el.classList.toggle('open');
+
+// ---------------- COMISIONES ----------------
+function cargarAhorro(){ cargarComisiones(); } // se mantiene el nombre por compatibilidad con iniciarApp()
+
+function cargarComisiones(){
+  document.getElementById('listaComisiones').innerHTML = skeletonLineas(4, [70,70,70,70]);
+  apiCall('getComisiones', {}).then(function(r){
+    var lista = r.comisiones || [];
+    if(lista.length === 0){
+      document.getElementById('listaComisiones').innerHTML = '<div class="card"><div class="empty">Aún no has creado ninguna comisión.</div></div>';
+      return;
+    }
+    document.getElementById('listaComisiones').innerHTML = lista.map(function(c){
+      return renderTarjetaComision_(c);
+    }).join('');
+  }).catch(function(){
+    document.getElementById('listaComisiones').innerHTML = '<div class="card"><div class="empty">Sin conexión.</div></div>';
+  });
 }
-function guardarAhorro(idx, fila){
-  var aportado = document.getElementById('ahorroAportado'+idx).value;
-  var retiro = document.getElementById('ahorroRetiro'+idx).value;
-  var nota = document.getElementById('ahorroNota'+idx).value;
-  apiCall('actualizarAhorroMes', { fila: fila, aportado: aportado, retiro: retiro, nota: nota }).then(function(resp){
-    if(resp.ok){ cargarAhorro(); cargarInicio(); }
-    else alert(resp.mensaje);
+
+function renderTarjetaComision_(c){
+  var activa = c.estado === 'Activa';
+  var pctViaticos = c.montoViaticos ? Math.min(100, Math.round((c.gastadoViaticos/c.montoViaticos)*100)) : 0;
+  var pctTransporte = c.montoTransporte ? Math.min(100, Math.round((c.gastadoTransporte/c.montoTransporte)*100)) : 0;
+
+  var bloqueTransporteExtra = '';
+  if(!activa && c.saldoTransporte > 0){
+    if(c.transporteDevuelto){
+      bloqueTransporteExtra = '<div class="com-ok">✅ '+fmt(c.saldoTransporte)+' de transporte ya devuelto</div>';
+    } else {
+      bloqueTransporteExtra = '<div class="com-alerta"><span>⚠ Debes devolver '+fmt(c.saldoTransporte)+'</span>' +
+        '<button class="com-btn-mini" onclick="confirmarDevueltoComision('+c.id+')">Marcar devuelto</button></div>';
+    }
+  } else if(activa && c.saldoViaticos > 0){
+    // informativo, no requiere acción
+  }
+
+  return '<div class="card">' +
+    '<div class="com-card-head">' +
+      '<div><div class="com-destino">'+c.destino+'</div><div class="com-fecha">'+c.fecha+'</div></div>' +
+      '<span class="com-estado '+(activa?'activa':'cerrada')+'">'+c.estado+'</span>' +
+    '</div>' +
+    '<div class="com-bolsa">' +
+      '<div class="com-bolsa-head"><span>Viáticos</span><b>'+fmt(c.gastadoViaticos)+' / '+fmt(c.montoViaticos)+'</b></div>' +
+      '<div class="com-bolsa-bar"><div class="com-bolsa-fill" style="width:'+pctViaticos+'%; background:var(--green);"></div></div>' +
+      (activa ? '<div style="font-size:11px;color:var(--muted);margin-top:3px;">Te queda '+fmt(c.saldoViaticos)+' · si no lo gastas, es tuyo</div>' : '') +
+    '</div>' +
+    '<div class="com-bolsa">' +
+      '<div class="com-bolsa-head"><span>Transporte</span><b>'+fmt(c.gastadoTransporte)+' / '+fmt(c.montoTransporte)+'</b></div>' +
+      '<div class="com-bolsa-bar"><div class="com-bolsa-fill" style="width:'+pctTransporte+'%; background:var(--accent);"></div></div>' +
+      (activa ? '<div style="font-size:11px;color:var(--muted);margin-top:3px;">Disponible '+fmt(c.saldoTransporte)+' · lo que sobre se devuelve</div>' : '') +
+    '</div>' +
+    bloqueTransporteExtra +
+    (activa ? '<button class="btn secondary" style="margin-top:10px;" onclick="confirmarCerrarComision('+c.id+')">Cerrar comisión</button>' : '') +
+    '</div>';
+}
+
+function confirmarCerrarComision(id){
+  if(!confirm('¿Cerrar esta comisión? Ya no vas a poder registrarle más gastos.')) return;
+  apiCall('cerrarComision', { comisionId: id }).then(function(resp){
+    if(resp.ok){ cargarComisiones(); } else { alert(resp.mensaje); }
   }).catch(function(err){ alert('Error: '+err.message); });
+}
+
+function confirmarDevueltoComision(id){
+  apiCall('marcarTransporteDevuelto', { comisionId: id }).then(function(resp){
+    if(resp.ok){ lanzarConfeti(); cargarComisiones(); } else { alert(resp.mensaje); }
+  }).catch(function(err){ alert('Error: '+err.message); });
+}
+
+function abrirModalNuevaComision(){
+  document.getElementById('comisionDestino').value = '';
+  document.getElementById('comisionFecha').value = hoyISO();
+  document.getElementById('comisionMontoViaticos').value = '';
+  document.getElementById('comisionMontoTransporte').value = '';
+  document.getElementById('overlayNuevaComision').classList.add('open');
+}
+function cerrarModalNuevaComision(){ document.getElementById('overlayNuevaComision').classList.remove('open'); }
+function confirmarNuevaComision(){
+  var destino = document.getElementById('comisionDestino').value;
+  var fecha = document.getElementById('comisionFecha').value;
+  var mv = soloDigitos_(document.getElementById('comisionMontoViaticos').value);
+  var mt = soloDigitos_(document.getElementById('comisionMontoTransporte').value);
+  if(!destino.trim()){ alert('Escribe el destino o descripción.'); return; }
+  if((!mv || Number(mv)<=0) && (!mt || Number(mt)<=0)){ alert('Pon al menos un monto (viáticos o transporte).'); return; }
+
+  var btn = document.getElementById('btnConfirmarNuevaComision');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Creando…';
+  apiCall('crearComision', { destino: destino, fecha: fecha, montoViaticos: mv, montoTransporte: mt }).then(function(resp){
+    btn.disabled = false; btn.textContent = 'Crear';
+    if(resp.ok){
+      cerrarModalNuevaComision();
+      cargarComisiones();
+    } else { alert(resp.mensaje); }
+  }).catch(function(err){
+    btn.disabled = false; btn.textContent = 'Crear';
+    alert('Error: '+err.message);
+  });
 }
 
 // ---------------- ANÁLISIS ----------------
