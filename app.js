@@ -516,7 +516,8 @@ function cargarFijos(){
     }
     document.getElementById('listaFijos').innerHTML = r.items.map(function(it){
       var parteTxt = String(it.parte || '');
-      var multiParte = parteTxt && parteTxt.indexOf('/1') === -1;
+      var parteValida = /^\d+\/\d+$/.test(parteTxt); // solo mostramos si es "número/número", ej. "1/2"
+      var multiParte = parteValida && parteTxt.indexOf('/1') === -1;
       var diaTag = '<span class="dia-pago" onclick="abrirModalDia(\''+it.categoria+'\','+(it.diaPago||'null')+')">' +
         (it.diaPago ? 'vence día '+it.diaPago : 'poner día') + '</span>';
       return '<div class="fijo-item">' +
