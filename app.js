@@ -79,6 +79,8 @@ var COLORES = ['#1F3864','#2E7D32','#B7791F','#8E44AD','#1B9C85','#C62828','#6B7
 var mesSeleccionadoInicio = null;
 var mesSeleccionadoFijos = null;
 var mesSeleccionadoAnalisis = null;
+var ultimosGastosCache = [];
+var editandoGastoFila = null;
 var mesesInfo = null;
 var fijaActual = null; // {fila, montoPlaneado} en el modal
 var ultimoResumen = null;
@@ -333,7 +335,7 @@ function formatearMiles_(valor){
   return Number(digitos).toLocaleString('es-CO');
 }
 (function(){
-  ['monto', 'comisionMontoViaticos', 'comisionMontoTransporte'].forEach(function(id){
+  ['monto', 'comisionMontoViaticos', 'comisionMontoTransporte', 'editGastoMonto'].forEach(function(id){
     var el = document.getElementById(id);
     if(el){
       el.addEventListener('input', function(e){
@@ -415,15 +417,19 @@ function cargarInicio(){
     renderDisponible();
   });
 
-  apiCall('getUltimosGastos', { n: 6 }).then(function(lista){
+  apiCall('getUltimosGastos', { n: 15 }).then(function(lista){
+    ultimosGastosCache = lista || [];
     if(!lista || lista.length===0){
       document.getElementById('listaUltimos').innerHTML = '<div class="empty">Aún no has registrado gastos.</div>';
       return;
     }
     document.getElementById('listaUltimos').innerHTML = lista.map(function(tx){
       var esReembolso = Number(tx.monto) < 0;
-      return '<div class="tx-item"><div class="tx-left"><div class="cat">'+tx.categoria+'</div>' +
-        '<div class="desc">'+(tx.descripcion||'')+'</div></div>' +
+      var desc = (tx.descripcion || '').trim();
+      var repetida = desc.toLowerCase() === (tx.categoria || '').trim().toLowerCase();
+      var lineaDesc = (desc && !repetida) ? '<div class="desc">'+desc+'</div>' : '';
+      return '<div class="tx-item" style="cursor:pointer;" onclick="abrirEditarGastoPorFila('+tx.fila+')"><div class="tx-left"><div class="cat">'+tx.categoria+'</div>' +
+        lineaDesc + '</div>' +
         '<div class="tx-right"><div class="monto'+(esReembolso?' refund':'')+'">'+(esReembolso?'+':'')+fmt(Math.abs(tx.monto))+'</div><div class="fecha">'+tx.fecha+'</div></div></div>';
     }).join('');
   }).catch(function(err){
@@ -490,6 +496,56 @@ function renderDonut(categorias){
     return '<div class="legend-item"><span><span class="dot" style="background:'+COLORES[i%COLORES.length]+'"></span>' +
       '<span class="nombre">'+c.nombre+'</span></span><span class="valor">'+fmt(c.valor)+'</span></div>';
   }).join('');
+}
+
+// ---------------- EDITAR / ELIMINAR un gasto (desde Últimos gastos) ----------------
+function abrirEditarGastoPorFila(fila){
+  var tx = ultimosGastosCache.find(function(t){ return t.fila === fila; });
+  if(!tx) return;
+  editandoGastoFila = fila;
+  document.getElementById('editGastoFecha').value = tx.fechaISO;
+  document.getElementById('editGastoDescripcion').value = tx.descripcion || '';
+  document.getElementById('editGastoMonto').value = formatearMiles_(String(Math.abs(tx.monto)));
+  document.getElementById('editGastoReembolso').checked = Number(tx.monto) < 0;
+
+  var sel = document.getElementById('editGastoCategoria');
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  apiCall('getCategorias', {}).then(function(categorias){
+    sel.innerHTML = categorias.map(function(c){ return '<option value="'+c.nombre+'">'+c.nombre+'</option>'; }).join('');
+    sel.value = tx.categoria;
+  }).catch(function(){ sel.innerHTML = '<option value="">Sin conexión</option>'; });
+
+  document.getElementById('overlayEditarGasto').classList.add('open');
+}
+function cerrarModalEditarGasto(){ document.getElementById('overlayEditarGasto').classList.remove('open'); }
+
+function guardarEdicionGasto(){
+  var fecha = document.getElementById('editGastoFecha').value;
+  var categoria = document.getElementById('editGastoCategoria').value;
+  var descripcion = document.getElementById('editGastoDescripcion').value;
+  var montoTxt = soloDigitos_(document.getElementById('editGastoMonto').value);
+  var esReembolso = document.getElementById('editGastoReembolso').checked;
+
+  if(!categoria){ alert('Elige una categoría.'); return; }
+  if(!montoTxt || Number(montoTxt)<=0){ alert('Escribe un monto válido.'); return; }
+  var montoFinal = esReembolso ? -Number(montoTxt) : Number(montoTxt);
+
+  var btn = document.getElementById('btnGuardarEditarGasto');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Guardando…';
+  apiCall('actualizarGasto', { fila: editandoGastoFila, categoria: categoria, descripcion: descripcion, monto: montoFinal, fecha: fecha }).then(function(resp){
+    btn.disabled = false; btn.textContent = 'Guardar';
+    if(resp.ok){ cerrarModalEditarGasto(); cargarInicio(); } else { alert(resp.mensaje); }
+  }).catch(function(err){
+    btn.disabled = false; btn.textContent = 'Guardar';
+    alert('Error: '+err.message);
+  });
+}
+
+function eliminarGastoDesdeUltimos(){
+  if(!confirm('¿Eliminar este gasto? No se puede deshacer.')) return;
+  apiCall('eliminarGasto', { fila: editandoGastoFila }).then(function(resp){
+    if(resp.ok){ cerrarModalEditarGasto(); cargarInicio(); } else { alert(resp.mensaje); }
+  }).catch(function(err){ alert('Error: '+err.message); });
 }
 
 // ---------------- FIJOS ----------------

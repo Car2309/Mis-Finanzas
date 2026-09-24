@@ -681,6 +681,38 @@
   </div>
 </div>
 
+<!-- ============ MODAL: editar gasto ============ -->
+<div class="overlay" id="overlayEditarGasto">
+  <div class="modal">
+    <h3>Editar gasto</h3>
+    <div class="field">
+      <label for="editGastoFecha">Fecha</label>
+      <input type="date" id="editGastoFecha">
+    </div>
+    <div class="field">
+      <label for="editGastoCategoria">Categoría</label>
+      <select id="editGastoCategoria"><option value="">Cargando…</option></select>
+    </div>
+    <div class="field">
+      <label for="editGastoDescripcion">Descripción</label>
+      <input type="text" id="editGastoDescripcion" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="editGastoMonto">Monto (COP)</label>
+      <div class="amount-wrap"><span>$</span><input type="text" id="editGastoMonto" inputmode="numeric"></div>
+    </div>
+    <div class="field" style="display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="editGastoReembolso" style="width:auto;">
+      <label style="margin:0; text-transform:none; font-size:13px;" for="editGastoReembolso">Es un reembolso (resta del total)</label>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary" onclick="cerrarModalEditarGasto()">Cancelar</button>
+      <button class="btn" id="btnGuardarEditarGasto" onclick="guardarEdicionGasto()">Guardar</button>
+    </div>
+    <button class="btn secondary" style="margin-top:10px; background:var(--red-bg); color:var(--red); border-color:var(--red-bg);" onclick="eliminarGastoDesdeUltimos()">🗑 Eliminar este gasto</button>
+  </div>
+</div>
+
 <div class="overlay" id="overlayConfig">
   <div class="modal">
     <h3>⚙️ Configuración</h3>
