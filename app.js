@@ -518,11 +518,19 @@ function cargarFijos(){
       var parteTxt = String(it.parte || '');
       var parteValida = /^\d+\/\d+$/.test(parteTxt); // solo mostramos si es "número/número", ej. "1/2"
       var multiParte = parteValida && parteTxt.indexOf('/1') === -1;
-      var diaTag = '<span class="dia-pago" onclick="abrirModalDia(\''+it.categoria+'\','+(it.diaPago||'null')+')">' +
-        (it.diaPago ? 'vence día '+it.diaPago : 'poner día') + '</span>';
+
+      var lineaMonto;
+      if(it.pagado){
+        var diff = it.montoPagado - it.montoPlaneado;
+        var colorDiff = diff > 0 ? 'var(--red)' : diff < 0 ? 'var(--green)' : 'var(--text)';
+        lineaMonto = 'Presupuestado '+fmt(it.montoPlaneado)+' → Pagado <b style="color:'+colorDiff+';">'+fmt(it.montoPagado)+'</b> · '+it.fechaPago;
+      } else {
+        lineaMonto = 'Presupuestado '+fmt(it.montoPlaneado);
+      }
+
       return '<div class="fijo-item">' +
         '<div class="fijo-left"><div class="nombre">'+it.categoria + (multiParte? '<span class="parte">'+it.parte+'</span>':'')+'</div>' +
-        '<div class="monto">'+fmt(it.montoPlaneado)+(it.pagado? ' · pagado '+fmt(it.montoPagado)+' ('+it.fechaPago+')':'')+diaTag+'</div></div>' +
+        '<div class="monto">'+lineaMonto+'</div></div>' +
         '<div class="fijo-right">' +
         (it.pagado? '' : '<button class="edit-btn" onclick="abrirModalMonto('+it.fila+','+it.montoPlaneado+')">✎</button>') +
         (it.pagado? '' : '<button class="edit-btn" onclick="abrirModalEliminar('+it.fila+')">🗑</button>') +
@@ -580,28 +588,6 @@ function confirmarMonto(){
   apiCall('actualizarMontoFijo', { fila: editandoFila, nuevoMonto: nuevoMonto, aplicarFuturo: aplicarFuturo }).then(function(resp){
     btn.disabled = false; btn.textContent = 'Guardar';
     cerrarModalMonto();
-    if(resp.ok){ cargarFijos(); } else { alert(resp.mensaje); }
-  }).catch(function(err){
-    btn.disabled = false; btn.textContent = 'Guardar';
-    alert('Error: '+err.message);
-  });
-}
-
-// --- Día de pago ---
-function abrirModalDia(categoria, diaActual){
-  editandoCategoria = categoria;
-  document.getElementById('tituloDia').textContent = 'Día de pago · ' + categoria;
-  document.getElementById('diaInput').value = diaActual || '';
-  document.getElementById('overlayDia').classList.add('open');
-}
-function cerrarModalDia(){ document.getElementById('overlayDia').classList.remove('open'); }
-function confirmarDia(){
-  var dia = document.getElementById('diaInput').value;
-  var btn = document.getElementById('btnConfirmarDia');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Guardando…';
-  apiCall('actualizarDiaPago', { categoria: editandoCategoria, dia: dia }).then(function(resp){
-    btn.disabled = false; btn.textContent = 'Guardar';
-    cerrarModalDia();
     if(resp.ok){ cargarFijos(); } else { alert(resp.mensaje); }
   }).catch(function(err){
     btn.disabled = false; btn.textContent = 'Guardar';
